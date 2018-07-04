@@ -7,7 +7,7 @@ from django.db.models import Count, OuterRef, Subquery, Q
 from django.db.models.functions import Coalesce
 from django.views.decorators.http import require_http_methods
 from django.urls import reverse
-from django.http import HttpResponseForbidden, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.http import HttpResponseForbidden, HttpResponse, HttpResponseBadRequest, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.response import TemplateResponse
 from django.utils.translation import ugettext_lazy as _
@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.status import HTTP_403_FORBIDDEN, HTTP_200_OK, \
     HTTP_201_CREATED
 from PIL import Image as PIL_Image
+from wsgiref.util import FileWrapper
 
 from imagetagger.images.serializers import ImageSetSerializer, ImageSerializer, SetTagSerializer
 from imagetagger.images.forms import ImageSetCreationForm, ImageSetCreationFormWT, ImageSetEditForm
@@ -193,7 +194,7 @@ def upload_image(request, imageset_id):
                                                       width=width,
                                                       height=height
                                                       )
-                                    new_image.save()
+                                    new_image.save(zip=False)
                                 except (OSError, IOError):
                                     error['damaged'] = True
                                     os.remove(file_path)
@@ -206,6 +207,7 @@ def upload_image(request, imageset_id):
                         error['directories'] = True
                 if duplicat_count > 0:
                     error['duplicates'] = duplicat_count
+                imageset.update_zip()
             else:
                 # creates a checksum for image
                 fchecksum = hashlib.sha512()
@@ -322,7 +324,6 @@ def list_images(request, image_set_id):
 def delete_images(request, image_id):
     image = get_object_or_404(Image, id=image_id)
     if image.image_set.has_perm('delete_images', request.user) and not image.image_set.image_lock:
-        os.remove(os.path.join(settings.IMAGE_PATH, image.path()))
         image.delete()
         next_image = request.POST.get('next-image-id', '')
         if next_image == '':
@@ -636,6 +637,48 @@ def dl_script(request):
     return TemplateResponse(request, 'images/download.py', context={
                             'base_url': settings.DOWNLOAD_BASE_URL,
                             }, content_type='text/plain')
+
+
+def download_imageset_zip(request, image_set_id):
+    image_set = get_object_or_404(ImageSet, id=image_set_id)
+
+    if not image_set.has_perm('read', request.user):
+        return HttpResponseForbidden()
+
+    if image_set.image_count == 0:
+        # It should not be possible to download empty image sets. This
+        # is already blocked in the UI, but it should also be checked
+        # on the server side.
+        messages.warning(request, 'There are no images in the selected image set.')
+        return redirect(reverse('images:view_imageset', args=(image_set_id,)))
+
+    if not image_set.zip_finished:
+        # The zip creation process after an upload is still in progress.
+        # Therefore, we do not want to start a second process operating
+        # on the same file.
+        messages.warning(request, 'The zip file generation is still in progress. Try again in a few minutes.')
+        return redirect(reverse('images:view_imageset', args=(image_set_id,)))
+
+    if not image_set.zip_file_exists():
+        # The zipfile does not yet exist and since its creation might take
+        # some time, the user should receive a feedback.
+        image_set.update_zip()
+        messages.warning(request, 'The zip file generation was initiated. The archive will be ready in a few minutes.')
+        return redirect(reverse('images:view_imageset', args=(image_set_id,)))
+
+    # Even though the zip file should represent the current state of the
+    # directory, update_zip is executed to be double safe. If there are
+    # no changes, it will take less than a second. Threading is disabled
+    # to prevent the download of an unfinished zip archive.
+    image_set.update_zip(threading=False)
+
+    chunk_size = 8192
+    file_path = os.path.join(settings.IMAGE_PATH, image_set.relative_zip_path())
+    response = StreamingHttpResponse(FileWrapper(open(file_path, 'rb'), chunk_size),
+                                     content_type='application/zip')
+    response['Content-Length'] = os.path.getsize(file_path)
+    response['Content-Disposition'] = "attachment; filename={}".format(image_set.name + '.zip')
+    return response
 
 
 @login_required
