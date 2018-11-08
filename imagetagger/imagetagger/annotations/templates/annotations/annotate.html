@@ -33,6 +33,9 @@
 {% endblock additional_annotation_js %}
 {% block bodyblock %}
 <div class="container-fluid">
+  <div id="feedback_image_verified" class="js_feedback alert alert-success hidden">
+    {% trans 'The image was verified.' %}
+  </div>
   <div id="feedback_annotation_created" class="js_feedback alert alert-success hidden">
     {% trans 'The annotation was successfully created.' %}
   </div>
@@ -111,6 +114,9 @@
                 <div id="boundingBoxes"></div>
             </div>
             <hr color="silver" width="100%">
+            <p>
+	    <u>Image Verified:</u> <span id="is_image_verified">loading</span>
+            </p>
             <p>
               <u>Annotations:</u>
             </p>
@@ -238,6 +244,14 @@
                                     <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
                                     <span class="glyphicon glyphicon-floppy-save" aria-hidden="true"></span>Next (f)
                                 </button>
+                              </div>
+                              <div class="col-sm-12"><p></p></div>
+                              <div class="col-md-6">
+                                <button type="button" class="verify_image_button btn btn-default btn-block" id="verify_image_button">
+                                    <span class="" aria-hidden="true"></span>Verify Img (w)
+                                </button>
+                              </div>
+                              <div class="col-md-6">
                               </div>
                             {% else %}
                               <div class="col-md-6">

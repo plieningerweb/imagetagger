@@ -921,3 +921,49 @@ def api_blurred_concealed_annotation(request) -> Response:
     return Response({
         'detail': 'you updated the last annotation',
     }, status=HTTP_200_OK)
+
+@login_required
+@api_view(['GET'])
+def api_load_image_verified(request) -> Response:
+    try:
+        image_id = int(request.query_params['image_id'])
+    except (KeyError, TypeError, ValueError):
+        raise ParseError
+
+    image = get_object_or_404(Image, pk=image_id)
+
+    if not image.image_set.has_perm('read', request.user):
+        return Response({
+            'detail': 'permission for reading this image set missing.',
+        }, status=HTTP_403_FORBIDDEN)
+
+    return Response({
+        'image_id': image.id,
+        'image_verified': image.image_verified,
+    }, status=HTTP_200_OK)
+
+@login_required
+@api_view(['POST'])
+def api_set_image_verified(request) -> Response:
+    try:
+        image_id = int(request.data['image_id'])
+        # int so it can be increased if we want to change meaning of verified
+        image_verified = int(request.data['image_verified'])
+    except (KeyError, TypeError, ValueError):
+        raise ParseError
+
+    image = get_object_or_404(Image, pk=image_id)
+
+    if not image.image_set.has_perm('edit_annotation', request.user):
+        return Response({
+            'detail': 'permission for verifying annotations in this image set missing.',
+        }, status=HTTP_403_FORBIDDEN)
+
+    with transaction.atomic():
+        image.image_verified = image_verified
+        image.save()
+    return Response({
+        'detail': 'you updated the image_verified attribute',
+        'image_id': image.id,
+        'image_verified': image.image_verified,
+    }, status=HTTP_200_OK)

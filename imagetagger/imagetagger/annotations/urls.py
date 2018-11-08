@@ -27,4 +27,6 @@ urlpatterns = [
     url(r'^api/annotation/verify/$', views.api_verify_annotation, name='verify_annotation'),
     url(r'^api/annotation/update/$', views.update_annotation, name='update_annotations'),
     url(r'^api/annotation/blurred_concealed/$', views.api_blurred_concealed_annotation, name='blurred_concealed_annotation'),
+    url(r'^api/image_verified/load/$', views.api_load_image_verified, name='image_verified_load'),
+    url(r'^api/image_verified/save/$', views.api_set_image_verified, name='image_verified_save'),
 ]

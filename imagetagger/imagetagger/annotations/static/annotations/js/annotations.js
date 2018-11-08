@@ -150,6 +150,37 @@ function calculateImageScale() {
   }
 
   /**
+   * Verify that all things in the image are labelled now
+   */
+  function verifyImage() {
+    var data = {
+      image_id: gImageId,
+      image_verified: 1,
+    };
+    $('.js_feedback').stop().addClass('hidden');
+    $.ajax(API_ANNOTATIONS_BASE_URL + 'image_verified/save/', {
+      type: 'POST',
+      headers: gHeaders,
+      dataType: 'json',
+      data: JSON.stringify(data),
+      success: function(data, textStatus, jqXHR) {
+        if (jqXHR.status === 200) {
+	      console.log('image_verified updated to:', data.image_verified);
+    	      $('#is_image_verified').text(data.image_verified);
+              displayFeedback($('#feedback_image_verified'));
+	} else {
+	  alert('error while updating verify_image: did not get 200 resposne');
+	}
+        // loadImageList();
+      },
+      error: function() {
+        displayFeedback($('#feedback_connection_error'));
+      }
+    });
+  }
+
+
+  /**
    * Create an annotation using the form data from the current page.
    * If an annotation is currently edited, an update is triggered instead.
    *
@@ -932,6 +963,24 @@ function calculateImageScale() {
     } else {
       handleNewAnnotations();
     }
+
+    // load if image is verified
+    var _tmp_p = {
+      image_id: imageId
+    };
+    $('#is_image_verified').text('loading');
+    $.ajax(API_ANNOTATIONS_BASE_URL+ 'image_verified/load/?' + $.param(_tmp_p), {
+      type: 'GET',
+      headers: gHeaders,
+      dataType: 'json',
+      success: function(data, textStatus, jqXHR) {
+    	$('#is_image_verified').text(data.image_verified);
+      },
+      error: function() {
+        $('#is_image_verified').text('error while loading');
+        $('.annotate_button').prop('disabled', false);
+      }
+    });
   }
 
   /**
@@ -1278,6 +1327,13 @@ function calculateImageScale() {
       }
       loadAdjacentImage(1);
     });
+    $('#verify_image_button').click(function(event) {
+      event.preventDefault();
+      if (tool instanceof BoundingBoxes) {
+          tool.cancelSelection();
+      }
+      verifyImage();
+    });
     $('#next_button').click(function(event) {
       event.preventDefault();
       createAnnotation(undefined, function() {
@@ -1409,6 +1465,9 @@ function calculateImageScale() {
           break;
         case 71: //g
           $('#not_in_image').click();
+          break;
+        case 87: //w
+          $('#verify_image_button').click();
           break;
         case 82: //r
           $('#reset_button').click();

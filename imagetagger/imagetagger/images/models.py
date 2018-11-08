@@ -17,6 +17,7 @@ class Image(models.Model):
     checksum = models.BinaryField()
     width = models.IntegerField(default=800)
     height = models.IntegerField(default=600)
+    image_verified = models.IntegerField(default=0)
 
     def path(self):
         return os.path.join(self.image_set.root_path(), self.filename)
