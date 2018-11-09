@@ -34,7 +34,10 @@
 {% block bodyblock %}
 <div class="container-fluid">
   <div id="feedback_image_verified" class="js_feedback alert alert-success hidden">
-    {% trans 'The image was verified.' %}
+	  {% trans 'The image was verified: ' %}<span id="feedback_image_verified_msg"></span>
+  </div>
+  <div id="feedback_image_verified_rest_failed" class="js_feedback alert alert-warning hidden">
+	  {% trans 'The image was verified: ' %}<span id="feedback_image_verified_rest_failed_msg"></span>
   </div>
   <div id="feedback_annotation_created" class="js_feedback alert alert-success hidden">
     {% trans 'The annotation was successfully created.' %}

@@ -167,7 +167,13 @@ function calculateImageScale() {
         if (jqXHR.status === 200) {
 	      console.log('image_verified updated to:', data.image_verified);
     	      $('#is_image_verified').text(data.image_verified);
-              displayFeedback($('#feedback_image_verified'));
+	      if(data.rest_ok) {
+                displayFeedback($('#feedback_image_verified'));
+    	        $('#feedback_image_verified_msg').text(data.notification);
+	      } else {
+                displayFeedback($('#feedback_image_verified_rest_failed'));
+    	        $('#feedback_image_verified_rest_failed_msg').text(data.notification);
+	      }
 	} else {
 	  alert('error while updating verify_image: did not get 200 resposne');
 	}

@@ -966,6 +966,7 @@ def api_set_image_verified(request) -> Response:
         image.image_verified = image_verified
         image.save()
 
+    rest_ok = False
     if image_verified > 0:
         try:
             serializer = AnnotationSerializer(
@@ -1030,17 +1031,20 @@ def api_set_image_verified(request) -> Response:
             assert r.status_code == 201
 
             msg_notification = 'rest notification was successfull'
+            rest_ok = True
         except Exception as e:
             msg_notification = 'error: rest notification was NOT successfull: {}'.format(e)
             # dev only
             # raise e
     else:
         msg_notification = 'rest notification not run because image verified not > 0'
+        rest_ok = True
 
     print('rest result: {}'.format(msg_notification))
         
     return Response({
         'notification': msg_notification,
+        'rest_ok': rest_ok,
         'detail': 'you updated the image_verified attribute',
         'image_id': image.id,
         'image_verified': image.image_verified,
