@@ -1,4 +1,7 @@
 import datetime
+import re
+import os
+import requests
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -962,7 +965,81 @@ def api_set_image_verified(request) -> Response:
     with transaction.atomic():
         image.image_verified = image_verified
         image.save()
+
+    if image_verified > 0:
+        try:
+            serializer = AnnotationSerializer(
+                image.annotations.select_related().filter(annotation_type__active=True).order_by('annotation_type__name'),
+                context={
+                    'request': request,
+                },
+                many=True)
+
+            points = [ (a['vector']['x1'], a['vector']['y1']) for a in serializer.data if a['annotation_type']['name'] == 'beet stem' ]
+            print("send rest notifications for points: {}".format(points))
+
+            res = re.match(r'frame_(\d+)', image.name)
+            stamp = res.groups()[0]
+
+            # print("stamp is", stamp, int(stamp[0:-9]), int(stamp[-9:]))
+
+            msg_yaml = (
+                'header:\n'
+                '  seq: \n'
+                '  stamp:\n'
+                '    secs: {secs}\n'
+                '    nsecs: {nsecs}\n'
+                "  frame_id: ''\n"
+                'frame_seq: 0\n'
+                'stream_pos: 0\n'
+                'bounding_boxes:').format(
+                secs=int(stamp[0:-9]),
+                nsecs=int(stamp[-9:]))  
+                
+            if len(points) == 0:
+                msg_yaml += '[]'
+            else:
+                for point in points:
+                    msg_yaml += (
+                        '\n'
+                        '  -\n'
+                        '    x1: {x1}\n'
+                        '    y1: {y1}\n'
+                        '    x2: {x2}\n'
+                        '    y2: {y2}\n'
+                        '    coverage: 1.0\n'
+                        '    class_id: 1'
+                        ).format(
+                        x1=point[0]-1,
+                        x2=point[0]-1,
+                        y1=point[1]+1,
+                        y2=point[1]+1)
+
+            print('send rest message')
+            print(msg_yaml)
+
+        
+            # use with env when starting
+            # e.g. REST_HOSTNAME='http://localhost:5000'
+            rest_hostname = os.environ.get('REST_HOSTNAME')
+            if not rest_hostname:
+                raise Exception('set environment variable "REST_HOSTNAME" to make rest nofitications work')
+
+            r = requests.post(rest_hostname + '/topic',
+                    data={'topic': '/bounding_boxes_confirmed', 'message_yaml': msg_yaml})
+            assert r.status_code == 201
+
+            msg_notification = 'rest notification was successfull'
+        except Exception as e:
+            msg_notification = 'error: rest notification was NOT successfull: {}'.format(e)
+            raise e
+    else:
+        msg_notification = 'rest notification not run because image verified not > 0'
+
+    print('rest result: {}'.format(msg_notification))
+        
     return Response({
+        'notification': msg_notification,
         'detail': 'you updated the image_verified attribute',
         'image_id': image.id,
         'image_verified': image.image_verified,
