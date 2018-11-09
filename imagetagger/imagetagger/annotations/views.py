@@ -1032,7 +1032,8 @@ def api_set_image_verified(request) -> Response:
             msg_notification = 'rest notification was successfull'
         except Exception as e:
             msg_notification = 'error: rest notification was NOT successfull: {}'.format(e)
-            raise e
+            # dev only
+            # raise e
     else:
         msg_notification = 'rest notification not run because image verified not > 0'
 
