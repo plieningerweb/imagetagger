@@ -998,7 +998,7 @@ def api_set_image_verified(request) -> Response:
                 nsecs=int(stamp[-9:]))  
                 
             if len(points) == 0:
-                msg_yaml += '[]'
+                msg_yaml += ' []'
             else:
                 for point in points:
                     msg_yaml += (
