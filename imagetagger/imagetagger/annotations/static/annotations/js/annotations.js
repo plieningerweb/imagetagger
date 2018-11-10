@@ -53,6 +53,9 @@ function calculateImageScale() {
   let gAnnotationCache = {};
   let gHighlightedAnnotation;
 
+  // auto refresh interval 
+  var gAutoRefreshInterval;
+
   var gShiftDown;
 
   // a threshold for editing an annotation if you select a small rectangle
@@ -1028,7 +1031,7 @@ function calculateImageScale() {
         if (data.image_set.images.length === 0) {
           // redirect to image set view.
           displayFeedback($('#feedback_image_set_empty'));
-          filterElem.val('').change();
+          //filterElem.val('').change();
           return;
         }
         displayImageList(data.image_set.images);
@@ -1263,6 +1266,16 @@ function calculateImageScale() {
     handleAnnotationTypeChange();
   }
 
+  function handleAutoRefreshChange() {
+    val = parseFloat($('select#select_auto_refresh').val());
+
+    if (val == 0) {
+      clearInterval(gAutoRefreshInterval);
+    } else {
+      clearInterval(gAutoRefreshInterval);
+      gAutoRefreshInterval = setInterval(loadImageList, val * 1000);
+    }
+  }
 
   $(function() {
     let get_params = decodeURIComponent(window.location.search.substring(1)).split('&');
@@ -1312,6 +1325,8 @@ function calculateImageScale() {
     });
     $('#draw_annotations').on('change', handleShowAnnotationsToggle);
     $('select#annotation_type_id').on('change', handleAnnotationTypeChange);
+
+    $('select#select_auto_refresh').on('change', handleAutoRefreshChange);
 
     // register click events
     $(window).click(function(e) {
