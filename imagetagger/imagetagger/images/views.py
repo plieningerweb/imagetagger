@@ -223,36 +223,31 @@ def upload_image(request, imageset_id):
                 for chunk in f.chunks():
                     fchecksum.update(chunk)
                 fchecksum = fchecksum.digest()
-                # tests for duplicats in  imageset
-                if Image.objects.filter(checksum=fchecksum, image_set=imageset)\
-                        .count() == 0:
-                    fname = ('_'.join(fname[:-1]) + '_' +
-                             ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
-                                     for _ in range(6)) + '.' + fname[-1])
-                    image = Image(
-                        name=f.name,
-                        image_set=imageset,
-                        filename=fname,
-                        checksum=fchecksum)
-                    with open(image.path(), 'wb') as out:
-                        for chunk in f.chunks():
-                            out.write(chunk)
-                    shutil.chown(image.path(), group=settings.UPLOAD_FS_GROUP)
-                    if imghdr.what(image.path()) in settings.IMAGE_EXTENSION:
-                        try:
-                            with PIL_Image.open(image.path()) as image_file:
-                                width, height = image_file.size
-                            image.height = height
-                            image.width = width
-                            image.save()
-                        except (OSError, IOError):
-                            error['damaged'] = True
-                            os.remove(image.path())
-                    else:
-                        error['unsupported'] = True
+                fname = ('_'.join(fname[:-1]) + '_' +
+                         ''.join(random.choice(string.ascii_uppercase + string.ascii_lowercase + string.digits)
+                                 for _ in range(6)) + '.' + fname[-1])
+                image = Image(
+                    name=f.name,
+                    image_set=imageset,
+                    filename=fname,
+                    checksum=fchecksum)
+                with open(image.path(), 'wb') as out:
+                    for chunk in f.chunks():
+                        out.write(chunk)
+                shutil.chown(image.path(), group=settings.UPLOAD_FS_GROUP)
+                if imghdr.what(image.path()) in settings.IMAGE_EXTENSION:
+                    try:
+                        with PIL_Image.open(image.path()) as image_file:
+                            width, height = image_file.size
+                        image.height = height
+                        image.width = width
+                        image.save()
+                    except (OSError, IOError):
+                        error['damaged'] = True
                         os.remove(image.path())
                 else:
-                    error['exists'] = True
+                    error['unsupported'] = True
+                    os.remove(image.path())
             errormessage = ''
             if error['zip']:
                 errors = list()
