@@ -668,13 +668,22 @@ def load_image_set(request) -> Response:
     serializer = ImageSetSerializer(image_set)
     serialized_image_set = serializer.data
     if filter_annotation_type_id:
-        filter_annotation_type = get_object_or_404(
-            AnnotationType, pk=filter_annotation_type_id)
-        # TODO: find a cleaner solution to filter related field set wihtin ImageSet serializer
-        serialized_image_set['images'] = ImageSerializer(
-            image_set.images.exclude(
-                annotations__annotation_type=filter_annotation_type).order_by(
-                'name'), many=True).data
+        if filter_annotation_type_id == 'image_verified':
+            # TODO: find a cleaner solution to filter related field set wihtin ImageSet serializer
+            # image_verified__gt -> greater than comparator
+            # check https://docs.djangoproject.com/en/dev/ref/models/querysets/#field-lookups
+            serialized_image_set['images'] = ImageSerializer(
+                image_set.images.exclude(
+                    image_verified__gt=0).order_by(
+                    'name'), many=True).data
+        else:
+            filter_annotation_type = get_object_or_404(
+                AnnotationType, pk=filter_annotation_type_id)
+            # TODO: find a cleaner solution to filter related field set wihtin ImageSet serializer
+            serialized_image_set['images'] = ImageSerializer(
+                image_set.images.exclude(
+                    annotations__annotation_type=filter_annotation_type).order_by(
+                    'name'), many=True).data
     else:
         # TODO: find a cleaner solution to order related field set wihtin ImageSet serializer
         serialized_image_set['images'] = ImageSerializer(

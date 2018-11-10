@@ -351,6 +351,13 @@ function calculateImageScale() {
         html: annotationType.name
       }));
     });
+
+    // add option to filter for image_verified
+    annotationTypeFilterSelect.append($('<option/>', {
+        name: 'image_verified',
+        value: 'image_verified',
+        html: 'image_verified'
+    }));
   }
 
   /**
@@ -1000,10 +1007,17 @@ function calculateImageScale() {
     };
 
     // select the corresponding annotation type for the label tool
-    if (filter !== '' && !isNaN(filter)) {
+    if (filter !== '') {
       params.filter_annotation_type_id = filter;
-      $('#annotation_type_id').val(filter);
-      handleAnnotationTypeChange();
+      if (!isNaN(filter)) {
+        // filter is a number, therefore assume it is a valid
+        // annotation type id
+        $('#annotation_type_id').val(filter);
+        handleAnnotationTypeChange();
+      } else {
+        // special hacky treatment if  not a number
+        // assume special filter implemeneted in backend
+      }
     }
 
     $.ajax(API_IMAGES_BASE_URL + 'imageset/load/?' + $.param(params), {
