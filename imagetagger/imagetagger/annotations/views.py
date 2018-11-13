@@ -1009,7 +1009,7 @@ def api_set_image_verified(request) -> Response:
                         '    x2: {x2}\n'
                         '    y2: {y2}\n'
                         '    coverage: 1.0\n'
-                        '    class_id: 1'
+                        '    class_id: 0'
                         ).format(
                         x1=point[0]-1,
                         x2=point[0]-1,
